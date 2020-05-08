@@ -26,7 +26,7 @@ endfunction()
 # We are using partition manager if we are a child image or if we are
 # the root image and the 'partition_manager' target exists.
 set(using_partition_manager
-  $<OR:$<BOOL:${IMAGE_NAME}>,$<TARGET_EXISTS:partition_manager>>
+  0
   )
 zephyr_compile_definitions(
   USE_PARTITION_MANAGER=${using_partition_manager}
