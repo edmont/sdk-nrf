@@ -1,0 +1,17 @@
+diff --git a/subsys/net/l2/openthread/openthread.c b/subsys/net/l2/openthread/openthread.c
+index a3006ef540..12035e329a 100644
+--- a/subsys/net/l2/openthread/openthread.c
++++ b/subsys/net/l2/openthread/openthread.c
+@@ -328,6 +328,12 @@ static void openthread_start(struct openthread_context *ot_context)
+ 	otInstance *ot_instance = ot_context->instance;
+ 	otError error;
+ 
++	//if (IS_ENABLED(CONFIG_OPENTHREAD_MANUAL_START)) {
++	if (1) {
++		NET_DBG("OpenThread manual start.");
++		return;
++	}
++
+ 	/* Sleepy End Device specific configuration. */
+ 	if (IS_ENABLED(CONFIG_OPENTHREAD_MTD_SED)) {
+ 		otLinkModeConfig ot_mode = otThreadGetLinkMode(ot_instance);

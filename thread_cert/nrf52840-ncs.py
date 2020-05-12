@@ -1159,7 +1159,7 @@ class nRF52840(IThci):
         self._sendline('reset')
         time.sleep(0.5)
         # To be removed:
-        self._sendline('ifconfig down')
+        #self._sendline('ifconfig down')
         self.isPowerDown = True
 
     def powerUp(self):
@@ -1184,8 +1184,8 @@ class nRF52840(IThci):
         try:
             self._sendline('reset')
             # To be removed:
-            time.sleep(0.5)
-            self._sendline('ifconfig down')
+            #time.sleep(0.5)
+            #self._sendline('ifconfig down')
             self.isPowerDown = True
             time.sleep(3)
 
@@ -1283,7 +1283,7 @@ class nRF52840(IThci):
             self._read()
             time.sleep(0.5)
             # To be removed:
-            self._sendline('ifconfig down')
+            #self._sendline('ifconfig down')
 
         except Exception as e:
             ModuleHelper.WriteIntoDebugLogger('reset() Error: ' + str(e))
@@ -1528,8 +1528,8 @@ class nRF52840(IThci):
         try:
             self._sendline('reset')
             # To be removed:
-            time.sleep(0.5)
-            self._sendline('ifconfig down')
+            #time.sleep(0.5)
+            #self._sendline('ifconfig down')
             self.isPowerDown = True
             time.sleep(timeout)
 

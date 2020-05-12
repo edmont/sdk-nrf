@@ -1,0 +1,30 @@
+diff --git a/subsys/shell/shell_ops.h b/subsys/shell/shell_ops.h
+index 06a5bac027..20e2dc3c54 100644
+--- a/subsys/shell/shell_ops.h
++++ b/subsys/shell/shell_ops.h
+@@ -15,8 +15,8 @@
+ extern "C" {
+ #endif
+ 
+-#define SHELL_DEFAULT_TERMINAL_WIDTH	(80u) /* Default PuTTY width. */
+-#define SHELL_DEFAULT_TERMINAL_HEIGHT	(24u) /* Default PuTTY height. */
++#define SHELL_DEFAULT_TERMINAL_WIDTH	(256u) /* Default PuTTY width. */
++#define SHELL_DEFAULT_TERMINAL_HEIGHT	(24u)  /* Default PuTTY height. */
+ 
+ static inline void shell_raw_fprintf(const struct shell_fprintf *const ctx,
+ 				     const char *fmt, ...)
+diff --git a/subsys/shell/shell_utils.h b/subsys/shell/shell_utils.h
+index 1ff1e6a46d..c9c7a941cb 100644
+--- a/subsys/shell/shell_utils.h
++++ b/subsys/shell/shell_utils.h
+@@ -15,8 +15,8 @@ extern "C" {
+ 
+ #define SHELL_MSG_SPECIFY_SUBCOMMAND	"Please specify a subcommand.\n"
+ 
+-#define SHELL_DEFAULT_TERMINAL_WIDTH	(80u) /* Default PuTTY width. */
+-#define SHELL_DEFAULT_TERMINAL_HEIGHT	(24u) /* Default PuTTY height. */
++#define SHELL_DEFAULT_TERMINAL_WIDTH	(256u) /* Default PuTTY width. */
++#define SHELL_DEFAULT_TERMINAL_HEIGHT	(24u)  /* Default PuTTY height. */
+ 
+ 
+ 

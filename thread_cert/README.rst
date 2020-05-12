@@ -43,9 +43,9 @@ Edit ``C:\GRL\Thread1.1\Web\data\deviceInputFields.xml`` and prepend this:
 Known issues
 ************
 
-* Thread autostarts on reset. To be fixed with: https://github.com/zephyrproject-rtos/zephyr/pull/25090
+* Thread autostarts on reset. To be fixed with: https://github.com/zephyrproject-rtos/zephyr/pull/25090 Use ``manual_start.patch`` in Zephyr for the moment.
 * Router DUT doesn't reply to SED's Child ID Requests. To be fixed with upmerge.
-* More failures to be investigated.
+* Zephyr's Shell wraps commands longer than 72 characters, causing issues with THCI's pyserial. To be fixed in Zephyr. Use ``terminal_width.patch`` by the moment.
 
 Beyond Certification
 ********************
