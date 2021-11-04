@@ -17,12 +17,10 @@ zephyr_library_link_libraries(zigbee)
 
 # Source files
 zephyr_library_sources(osif/zb_nrf_platform.c)
-zephyr_library_sources(osif/zb_nrf_nvram.c)
-zephyr_library_sources(osif/zb_nrf_timer.c)
-zephyr_library_sources(osif/zb_nrf_led_button.c)
 zephyr_library_sources(osif/zb_nrf_transceiver.c)
 zephyr_library_sources(osif/zb_nrf_crypto.c)
 zephyr_library_sources(osif/zb_nrf_pwr_mgmt.c)
+zephyr_library_sources_ifdef(CONFIG_DK_LIBRARY osif/zb_nrf_led_button.c)
 zephyr_library_sources_ifdef(CONFIG_ZIGBEE_HAVE_SERIAL osif/zb_nrf_serial.c)
 zephyr_library_sources_ifdef(CONFIG_ZIGBEE_HAVE_ASYNC_SERIAL osif/zb_nrf_async_serial.c)
 zephyr_library_sources_ifdef(CONFIG_ZBOSS_TRACE_HEXDUMP_LOGGING osif/zb_nrf_logger.c)
@@ -43,6 +41,12 @@ zephyr_library_sources_ifdef(
 	cli/zigbee_cli_cmd_nvram.c
 	cli/zigbee_cli_ctx_mgr.c
 )
+
+zephyr_library_sources_ifdef(CONFIG_FLASH_MAP osif/zb_nrf_nvram.c)
+zephyr_library_sources_ifndef(CONFIG_FLASH_MAP osif/zb_nrf_nvram_none.c)
+
+zephyr_library_sources_ifdef(CONFIG_ZIGBEE_TIME_COUNTER osif/zb_nrf_timer_counter.c)
+zephyr_library_sources_ifdef(CONFIG_ZIGBEE_TIME_KTIMER osif/zb_nrf_timer_ktimer.c)
 
 zephyr_library_link_libraries(zboss)
 
