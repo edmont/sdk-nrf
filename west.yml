@@ -33,6 +33,8 @@ manifest:
       url-base: https://github.com/NordicSemiconductor
     - name: memfault
       url-base: https://github.com/memfault
+    - name: edmo
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -51,8 +53,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: edmo
       repo-path: sdk-zephyr
-      revision: pull/760/head
+      revision: dev/ref-dev-20220317
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -170,9 +173,10 @@ manifest:
       revision: 0.28.2
       remote: memfault
     - name: openthread
+      remote: edmo
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: pull/12/head
+      revision: dev/ref-dev-20220317
 
   # West-related configuration for the nrf repository.
   self:
