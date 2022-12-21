@@ -16,15 +16,19 @@
 
 LOG_MODULE_REGISTER(coap_client_utils, CONFIG_COAP_CLIENT_UTILS_LOG_LEVEL);
 
+#if defined(CONFIG_OPENTHREAD_MTD_SED)
 #define RESPONSE_POLL_PERIOD 100
 
 static uint32_t poll_period;
+#endif
 
 static bool is_connected;
 
 static struct k_work unicast_light_work;
 static struct k_work multicast_light_work;
+#if defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED)
 static struct k_work toggle_MTD_SED_work;
+#endif
 static struct k_work provisioning_work;
 static struct k_work on_connect_work;
 static struct k_work on_disconnect_work;
@@ -54,6 +58,7 @@ static struct sockaddr_in6 unique_local_addr = {
 	.sin6_scope_id = 0U
 };
 
+#if defined(CONFIG_OPENTHREAD_MTD_SED)
 static bool is_mtd_in_med_mode(otInstance *instance)
 {
 	return otThreadGetLinkMode(instance).mRxOnWhenIdle;
@@ -96,6 +101,7 @@ static void poll_period_restore(void)
 		poll_period = 0;
 	}
 }
+#endif /* defined(CONFIG_OPENTHREAD_MTD_SED) */
 
 static int on_provisioning_reply(const struct coap_packet *response,
 				 struct coap_reply *reply,
@@ -129,9 +135,9 @@ static int on_provisioning_reply(const struct coap_packet *response,
 	LOG_INF("Received peer address: %s", unique_local_addr_str);
 
 exit:
-	if (IS_ENABLED(CONFIG_OPENTHREAD_MTD_SED)) {
+#if defined(CONFIG_OPENTHREAD_MTD_SED)
 		poll_period_restore();
-	}
+#endif
 
 	return ret;
 }
@@ -174,10 +180,10 @@ static void send_provisioning_request(struct k_work *item)
 {
 	ARG_UNUSED(item);
 
-	if (IS_ENABLED(CONFIG_OPENTHREAD_MTD_SED)) {
-		/* decrease the polling period for higher responsiveness */
-		poll_period_response_set();
-	}
+#if defined(CONFIG_OPENTHREAD_MTD_SED)
+	/* decrease the polling period for higher responsiveness */
+	poll_period_response_set();
+#endif
 
 	LOG_INF("Send 'provisioning' request");
 	coap_send_request(COAP_METHOD_GET,
@@ -185,6 +191,7 @@ static void send_provisioning_request(struct k_work *item)
 			  provisioning_option, NULL, 0u, on_provisioning_reply);
 }
 
+#if defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED)
 static void toggle_minimal_sleepy_end_device(struct k_work *item)
 {
 	otError error;
@@ -205,6 +212,7 @@ static void toggle_minimal_sleepy_end_device(struct k_work *item)
 		on_mtd_mode_toggle(mode.mRxOnWhenIdle);
 	}
 }
+#endif /* defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED) */
 
 static void update_device_state(void)
 {
@@ -218,7 +226,9 @@ static void on_thread_state_changed(uint32_t flags, void *context)
 	struct openthread_context *ot_context = context;
 
 	if (flags & OT_CHANGED_THREAD_ROLE) {
-		switch (otThreadGetDeviceRole(ot_context->instance)) {
+		otDeviceRole curRole;
+		curRole = otThreadGetDeviceRole(ot_context->instance);
+		switch (curRole) {
 		case OT_DEVICE_ROLE_CHILD:
 		case OT_DEVICE_ROLE_ROUTER:
 		case OT_DEVICE_ROLE_LEADER:
@@ -245,8 +255,7 @@ static void submit_work_if_connected(struct k_work *work)
 	}
 }
 
-void coap_client_utils_init(ot_connection_cb_t on_connect,
-			    ot_disconnection_cb_t on_disconnect,
+void coap_client_utils_init(ot_connection_cb_t on_connect, ot_disconnection_cb_t on_disconnect,
 			    mtd_mode_toggle_cb_t on_toggle)
 {
 	on_mtd_mode_toggle = on_toggle;
@@ -262,11 +271,10 @@ void coap_client_utils_init(ot_connection_cb_t on_connect,
 	openthread_set_state_changed_cb(on_thread_state_changed);
 	openthread_start(openthread_get_default_context());
 
-	if (IS_ENABLED(CONFIG_OPENTHREAD_MTD_SED)) {
-		k_work_init(&toggle_MTD_SED_work,
-			    toggle_minimal_sleepy_end_device);
-		update_device_state();
-	}
+#if defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED)
+	k_work_init(&toggle_MTD_SED_work, toggle_minimal_sleepy_end_device);
+	update_device_state();
+#endif
 }
 
 void coap_client_toggle_one_light(void)
@@ -284,9 +292,9 @@ void coap_client_send_provisioning_request(void)
 	submit_work_if_connected(&provisioning_work);
 }
 
+#if defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED)
 void coap_client_toggle_minimal_sleepy_end_device(void)
 {
-	if (IS_ENABLED(CONFIG_OPENTHREAD_MTD_SED)) {
-		k_work_submit(&toggle_MTD_SED_work);
-	}
+	k_work_submit(&toggle_MTD_SED_work);
 }
+#endif

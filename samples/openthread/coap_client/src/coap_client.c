@@ -112,9 +112,11 @@ static void on_button_changed(uint32_t button_state, uint32_t has_changed)
 		coap_client_toggle_mesh_lights();
 	}
 
+#if defined(CONFIG_OPENTHREAD_MTD_SED) || defined(CONFIG_OPENTHREAD_MTD_SSED)
 	if (buttons & DK_BTN3_MSK) {
 		coap_client_toggle_minimal_sleepy_end_device();
 	}
+#endif
 
 	if (buttons & DK_BTN4_MSK) {
 		coap_client_send_provisioning_request();
@@ -127,9 +129,9 @@ void main(void)
 
 	LOG_INF("Start CoAP-client sample");
 
-	if (IS_ENABLED(CONFIG_RAM_POWER_DOWN_LIBRARY)) {
-		power_down_unused_ram();
-	}
+#if defined(CONFIG_RAM_POWER_DOWN_LIBRARY)
+	power_down_unused_ram();
+#endif
 
 	ret = dk_buttons_init(on_button_changed);
 	if (ret) {
@@ -157,6 +159,5 @@ void main(void)
 
 #endif /* CONFIG_BT_NUS */
 
-	coap_client_utils_init(on_ot_connect, on_ot_disconnect,
-			       on_mtd_mode_toggle);
+	coap_client_utils_init(on_ot_connect, on_ot_disconnect, on_mtd_mode_toggle);
 }

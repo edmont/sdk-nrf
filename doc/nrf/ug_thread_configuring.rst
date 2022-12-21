@@ -256,6 +256,7 @@ Minimal Thread Device (MTD)
 
   By default, the MTD operates as Minimal End Device (MED).
   To make it operate as Sleepy End Device (SED), set :kconfig:option:`CONFIG_OPENTHREAD_MTD_SED`.
+  
 
 .. _thread_ug_tfm_support:
 
