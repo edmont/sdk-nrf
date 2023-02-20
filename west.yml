@@ -33,6 +33,8 @@ manifest:
       url-base: https://github.com/memfault
     - name: ant-nrfconnect
       url-base: https://github.com/ant-nrfconnect
+    - name: ahasztag
+      url-base: https://github.com/ahasztag
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -114,7 +116,8 @@ manifest:
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 2ccb73113e54b9d56c07cfde838482c762584f19
+      remote: ahasztag
+      revision: csl_drx_abort_fix_no_dtx
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
