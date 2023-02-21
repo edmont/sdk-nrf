@@ -176,7 +176,7 @@ config OPENTHREAD_MAC_SOFTWARE_TX_SECURITY_ENABLE
 # CSL Transmitter configuration
 config OPENTHREAD_PLATFORM_CSL_UNCERT
 	int
-	default 5
+	default 10
 
 config IEEE802154_NRF5_DELAY_TRX_ACC
 	int
