@@ -33,6 +33,8 @@ manifest:
       url-base: https://github.com/memfault
     - name: ant-nrfconnect
       url-base: https://github.com/ant-nrfconnect
+    - name: edmont
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -171,9 +173,10 @@ manifest:
       path: modules/hal/cirrus-logic
       revision: 9f6b3812237fbb0d4157ba3584c13f1644fcbe3a
     - name: openthread
+      remote: edmont
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: 2060039bbfec52ac00f22a7cc3213c2ab1df138e
+      revision: dev/preamble
     - name: ant
       repo-path: sdk-ant
       revision: 7df46a12ace258473c1f2b3b98de690b5799ac64
