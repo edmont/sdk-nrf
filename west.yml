@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/BabbleSim
     - name: bosch
       url-base: https://github.com/boschsensortec
+    - name: edmont
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -61,7 +63,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: v3.4.99-ncs1
+      remote: edmont
+      revision: pr/sed-improv
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -140,8 +143,9 @@ manifest:
       revision: v3.3.0-ncs2
     - name: nrfxlib
       repo-path: sdk-nrfxlib
+      remote: edmont
+      revision: pr/sed-improv
       path: nrfxlib
-      revision: v2.5.0
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
@@ -223,8 +227,9 @@ manifest:
           compare-by-default: false
     - name: openthread
       repo-path: sdk-openthread
+      remote: edmont
       path: modules/lib/openthread
-      revision: 57ef721eeed2550835c528ab7b8e77671f7039d6
+      revision: pr/sed-improv
       userdata:
         ncs:
           upstream-url: https://github.com/openthread/openthread
