@@ -33,6 +33,8 @@ manifest:
       url-base: https://github.com/memfault
     - name: ant-nrfconnect
       url-base: https://github.com/ant-nrfconnect
+    - name: edmo
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -112,9 +114,10 @@ manifest:
       repo-path: sdk-mbedtls
       revision: v3.1.0-ncs3
     - name: nrfxlib
+      remote: edmo
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: v2.3.0
+      revision: test/ncs-2.3-zboss
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
