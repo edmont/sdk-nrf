@@ -559,7 +559,7 @@ void zb_osif_init(void)
 
 #ifdef CONFIG_ZIGBEE_HAVE_SERIAL
 	/* Initialise serial trace */
-	zb_osif_serial_init();
+	// zb_osif_serial_init();
 #endif
 
 	/* Initialise random generator */
