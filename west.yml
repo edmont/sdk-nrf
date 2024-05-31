@@ -41,6 +41,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: edmo
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -148,7 +150,8 @@ manifest:
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: dd0aa77b0518756f2a3891d02d0ac7b75d3a7e04
+      remote: edmo
+      revision: dev/zboss-libs-new-sysbuild
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
