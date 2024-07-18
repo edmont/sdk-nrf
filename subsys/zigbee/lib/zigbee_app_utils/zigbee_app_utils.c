@@ -250,9 +250,6 @@ zb_ret_t zigbee_default_signal_handler(zb_bufid_t bufid)
 		 * Next step: perform BDB initialization procedure,
 		 *            (see BDB specification section 7.1).
 		 */
-		ZB_ERROR_CHECK(zb_zcl_set_backward_comp_mode(ZB_ZCL_AUTO_MODE));
-		ZB_ERROR_CHECK(
-			zb_zcl_set_backward_compatible_statuses_mode(ZB_ZCL_STATUSES_ZCL8_MODE));
 		if (IS_ENABLED(CONFIG_ZIGBEE_PANID_CONFLICT_RESOLUTION)) {
 			zb_enable_panid_conflict_resolution(
 				CONFIG_ZIGBEE_PANID_CONFLICT_RESOLUTION);
