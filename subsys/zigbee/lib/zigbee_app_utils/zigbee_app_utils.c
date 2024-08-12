@@ -632,27 +632,27 @@ zb_ret_t zigbee_default_signal_handler(zb_bufid_t bufid)
 		LOG_INF("Find and bind target finished (status: %d)", status);
 		break;
 
-#ifndef CONFIG_ZIGBEE_ROLE_END_DEVICE
-	case ZB_NWK_SIGNAL_PANID_CONFLICT_DETECTED: {
-		/* This signal informs the Router and Coordinator that conflict
-		 * PAN ID has been detected and needs to be resolved. In order
-		 * to do that *zb_start_pan_id_conflict_resolution* is called.
-		 */
-		LOG_INF("PAN ID conflict detected, trying to resolve. ");
+// #ifndef CONFIG_ZIGBEE_ROLE_END_DEVICE
+// 	case ZB_NWK_SIGNAL_PANID_CONFLICT_DETECTED: {
+// 		/* This signal informs the Router and Coordinator that conflict
+// 		 * PAN ID has been detected and needs to be resolved. In order
+// 		 * to do that *zb_start_pan_id_conflict_resolution* is called.
+// 		 */
+// 		LOG_INF("PAN ID conflict detected, trying to resolve. ");
 
-		zb_bufid_t buf_copy = zb_buf_get_out();
+// 		zb_bufid_t buf_copy = zb_buf_get_out();
 
-		if (buf_copy) {
-			zb_buf_copy(buf_copy, bufid);
-			ZVUNUSED(ZB_ZDO_SIGNAL_CUT_HEADER(buf_copy));
+// 		if (buf_copy) {
+// 			zb_buf_copy(buf_copy, bufid);
+// 			ZVUNUSED(ZB_ZDO_SIGNAL_CUT_HEADER(buf_copy));
 
-			zb_start_pan_id_conflict_resolution(buf_copy);
-		} else {
-			LOG_ERR("No free buffer available, skipping conflict resolving this time.");
-		}
-		break;
-	}
-#endif
+// 			zb_start_pan_id_conflict_resolution(buf_copy);
+// 		} else {
+// 			LOG_ERR("No free buffer available, skipping conflict resolving this time.");
+// 		}
+// 		break;
+// 	}
+// #endif
 
 	case ZB_ZDO_SIGNAL_DEFAULT_START:
 	case ZB_NWK_SIGNAL_DEVICE_ASSOCIATED:
