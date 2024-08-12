@@ -102,7 +102,7 @@ void zb_osif_aes_init(void)
 #endif
 }
 
-void zb_osif_aes128_hw_encrypt(zb_uint8_t *key, zb_uint8_t *msg, zb_uint8_t *c)
+void zb_osif_aes128_hw_encrypt(const zb_uint8_t *key, const zb_uint8_t *msg, zb_uint8_t *c)
 {
 	if (!(c && msg && key)) {
 		__ASSERT(false, "NULL argument passed");
