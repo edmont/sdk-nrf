@@ -295,6 +295,9 @@ int zigbee_init(void)
 	zb_osif_get_ieee_eui64(ieee_addr);
 	zb_set_long_address(ieee_addr);
 
+	/* Temporary solution for running existing tests */
+	zboss_use_r22_behavior();
+
 	/* Keep or erase NVRAM to save the network parameters
 	 * after device reboot or power-off.
 	 */
