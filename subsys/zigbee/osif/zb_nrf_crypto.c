@@ -109,5 +109,5 @@ void zb_osif_aes128_hw_encrypt(const zb_uint8_t *key, const zb_uint8_t *msg, zb_
 		return;
 	}
 
-	encrypt_aes(key, msg, c);
+	encrypt_aes((zb_uint8_t *)key, (zb_uint8_t *)msg, (zb_uint8_t *)c);
 }
