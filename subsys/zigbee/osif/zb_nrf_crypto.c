@@ -14,6 +14,8 @@
 #elif CONFIG_ZIGBEE_USE_SOFTWARE_AES
 #include <ocrypto_aes_ecb.h>
 #include <ocrypto_aes_key.h>
+#elif CONFIG_NRF_SECURITY
+#include <psa/crypto.h>
 #else
 #error No crypto suite for Zigbee stack has been selected
 #endif
@@ -72,6 +74,31 @@ static void encrypt_aes(zb_uint8_t *key, zb_uint8_t *msg, zb_uint8_t *c)
 {
 	ocrypto_aes_ecb_encrypt(c, msg, ocrypto_aes128_KEY_BYTES, key, ocrypto_aes128_KEY_BYTES);
 }
+#elif CONFIG_NRF_SECURITY
+static void encrypt_aes(zb_uint8_t *key, zb_uint8_t *msg, zb_uint8_t *c)
+{
+	psa_status_t status;
+	psa_key_id_t key_id;
+	uint32_t out_len;
+
+	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
+	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
+	psa_set_key_algorithm(&key_attributes, PSA_ALG_ECB_NO_PADDING);
+	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_AES);
+	psa_set_key_bits(&key_attributes, 128);
+
+	status = psa_import_key(&key_attributes, key, ECB_AES_KEY_SIZE, &key_id);
+	__ASSERT(status == PSA_SUCCESS, "psa_import failed! (Error: %d)", status);
+
+	psa_reset_key_attributes(&key_attributes);
+
+	status = psa_cipher_encrypt(key_id, PSA_ALG_ECB_NO_PADDING, msg, ECB_AES_KEY_SIZE, c,
+				    ECB_AES_KEY_SIZE, &out_len);
+	__ASSERT(status == PSA_SUCCESS, "psa_cipher_encrypt failed! (Error: %d)", status);
+
+	psa_destroy_key(key_id);
+}
 #endif
 
 void zb_osif_rng_init(void)
@@ -99,6 +126,9 @@ void zb_osif_aes_init(void)
 #if CONFIG_CRYPTO_NRF_ECB
 	dev = DEVICE_DT_GET(DT_INST(0, nordic_nrf_ecb));
 	__ASSERT(device_is_ready(dev), "Crypto driver not found");
+#elif CONFIG_NRF_SECURITY
+	psa_status_t status = psa_crypto_init();
+	__ASSERT(status == PSA_SUCCESS, "Cannot initialize PSA crypto");
 #endif
 }
 
