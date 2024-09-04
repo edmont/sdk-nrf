@@ -443,6 +443,8 @@ zb_ret_t zigbee_default_signal_handler(zb_bufid_t bufid)
 			LOG_INF("Network left (leave type: %d)",
 				leave_params->leave_type);
 
+			// Note: at this point role is ZB_NWK_DEVICE_TYPE_NONE in R23
+
 			if (zb_get_network_role() ==
 			    ZB_NWK_DEVICE_TYPE_COORDINATOR) {
 				if (factory_reset_context.pibcache_pan_id_needs_reset) {
