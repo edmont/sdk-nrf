@@ -141,3 +141,13 @@ void zb_osif_aes128_hw_encrypt(const zb_uint8_t *key, const zb_uint8_t *msg, zb_
 
 	encrypt_aes((zb_uint8_t *)key, (zb_uint8_t *)msg, (zb_uint8_t *)c);
 }
+
+#if CONFIG_NRF_SECURITY
+zb_int_t zb_osif_scalarmult(zb_uint8_t *result_point,
+                            const zb_uint8_t *scalar,
+                            const zb_uint8_t *point)
+{
+	ocrypto_curve25519_scalarmult(result_point, scalar, point);
+	return 0;
+}
+#endif /* CONFIG_NRF_SECURITY */
