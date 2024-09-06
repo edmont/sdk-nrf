@@ -349,10 +349,6 @@ static void zboss_thread(void *arg1, void *arg2, void *arg3)
 {
 	zb_ret_t zb_err_code;
 
-	zb_disable_key_neg_method(ZB_TLV_KEY_ECDHE_CURVE_25519_HASH_AESMMO128);
-	zb_disable_key_neg_method(ZB_TLV_KEY_ECDHE_CURVE_25519_HASH_SHA256);
-	zb_disable_key_neg_method(ZB_TLV_KEY_ECDHE_CURVE_P256_HASH_SHA256);
-
 	zb_err_code = zboss_start_no_autostart();
 	__ASSERT(zb_err_code == RET_OK, "Error when starting ZBOSS stack!");
 
