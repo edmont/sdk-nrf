@@ -187,11 +187,13 @@ void zb_trans_get_rssi(zb_uint8_t *rssi_value_p)
 }
 
 /* Set channel and go to the normal (not ed scan) mode */
-void zb_trans_set_channel(zb_uint8_t channel_number)
+zb_ret_t zb_trans_set_channel(zb_uint8_t channel_number)
 {
 	LOG_DBG("Function: %s, channel number: %d", __func__, channel_number);
 
 	radio_api->set_channel(radio_dev, channel_number);
+
+	return RET_OK;
 }
 
 /* Sets the transmit power. */

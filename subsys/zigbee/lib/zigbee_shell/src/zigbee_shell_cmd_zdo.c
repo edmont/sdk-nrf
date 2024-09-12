@@ -2154,7 +2154,7 @@ static bool zdo_mgmt_lqi_cb(struct ctx_entry *ctx_entry, zb_bufid_t bufid)
 				    "%#7.4x %#8.2x  %u %11u %5u",
 				    tbl_rec->network_addr, tbl_rec->type_flags,
 				    tbl_rec->permit_join,
-				    tbl_rec->depth, tbl_rec->lqi);
+				    tbl_rec->depth, tbl_rec->lqa);
 			tbl_rec++;
 		}
 
