@@ -59,6 +59,9 @@ static volatile bool is_rejoin_start_scheduled;
 static void rejoin_the_network(zb_uint8_t param);
 static void start_network_rejoin(void);
 static void stop_network_rejoin(zb_uint8_t was_scheduled);
+#if defined ZB_COORDINATOR_ROLE
+static void change_panid(zb_uint8_t param);
+#endif
 
 /* A ZBOSS internal API needed for workaround for KRKNWK-14112 */
 struct zb_aps_device_key_pair_set_s ZB_PACKED_PRE
@@ -631,13 +634,12 @@ zb_ret_t zigbee_default_signal_handler(zb_bufid_t bufid)
 		LOG_INF("Find and bind target finished (status: %d)", status);
 		break;
 
-#ifndef CONFIG_ZIGBEE_ROLE_END_DEVICE
+#if defined ZB_COORDINATOR_ROLE
 	case ZB_NWK_SIGNAL_PANID_CONFLICT_DETECTED: {
-		/* This signal informs the Router and Coordinator that conflict
-		 * PAN ID has been detected and needs to be resolved. In order
-		 * to do that *zb_start_pan_id_conflict_resolution* is called.
+		/* This signal informs the Coordinator that conflict PAN ID 
+		 * has been detected and needs to be resolved.
 		 */
-		LOG_INF("PAN ID conflict detected, trying to resolve. ");
+		LOG_INF("PAN ID conflict detected, trying to resolve.");
 
 		zb_bufid_t buf_copy = zb_buf_get_out();
 
@@ -645,13 +647,13 @@ zb_ret_t zigbee_default_signal_handler(zb_bufid_t bufid)
 			zb_buf_copy(buf_copy, bufid);
 			ZVUNUSED(ZB_ZDO_SIGNAL_CUT_HEADER(buf_copy));
 
-			zb_start_pan_id_conflict_resolution(buf_copy);
+			change_panid(buf_copy);
 		} else {
 			LOG_ERR("No free buffer available, skipping conflict resolving this time.");
 		}
 		break;
 	}
-#endif
+#endif /* ZB_COORDINATOR_ROLE */
 
 	case ZB_ZDO_SIGNAL_DEFAULT_START:
 	case ZB_NWK_SIGNAL_DEVICE_ASSOCIATED:
@@ -1026,3 +1028,37 @@ bool was_factory_reset_done(void)
 	return factory_reset_context.reset_done;
 }
 #endif /* CONFIG_ZIGBEE_FACTORY_RESET */
+
+#if defined ZB_COORDINATOR_ROLE
+static void change_panid_cb(zb_uint8_t param)
+{
+  zb_channel_panid_change_preparation_t *params = ZB_BUF_GET_PARAM(param, zb_channel_panid_change_preparation_t);
+  if (params->error_cnt == 0)
+  {
+    LOG_DBG("Preparation for PAN ID change is successful");
+    if (RET_OK == zb_start_panid_change(param))
+    {
+      LOG_DBG("Change PAN ID procedure started successfully");
+    }
+  }
+}
+
+static void change_panid(zb_uint8_t param)
+{
+  if (param == 0u)
+  {
+    zb_buf_get_out_delayed(change_panid);
+  }
+  else
+  {
+    zb_panid_change_parameters_t *params = ZB_BUF_GET_PARAM(param, zb_panid_change_parameters_t);
+    params->next_panid_change = 0xffffu; /* The next panid value will be randomly generated */
+
+    /* Send set_configuration_req to all devices for allow PAN ID change */
+    if (RET_OK == zb_prepare_network_for_panid_change(param, change_panid_cb))
+    {
+      LOG_DBG("Prepare network for panid change");
+    }
+  }
+}
+#endif /* ZB_COORDINATOR_ROLE */
