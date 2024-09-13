@@ -340,6 +340,9 @@ config ZIGBEE_USE_SOFTWARE_AES
 	select NRF_OBERON
 	default n
 
+config NRF_SECURITY
+	default y
+
 if NRF_SECURITY
 
 config MBEDTLS_HEAP_SIZE
