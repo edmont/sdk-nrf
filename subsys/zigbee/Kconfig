@@ -13,6 +13,9 @@ menuconfig ZIGBEE
 	select NETWORKING
 	select NET_PKT_TXTIME
 	select REBOOT
+	select PSA_WANT_ALG_ECB_NO_PADDING if NRF_SECURITY
+	select PSA_WANT_KEY_TYPE_AES if NRF_SECURITY
+	select MBEDTLS_ENABLE_HEAP if NRF_SECURITY
 	imply ENTROPY_GENERATOR
 	imply POLL
 	imply FLASH
@@ -336,6 +339,13 @@ config ZIGBEE_USE_SOFTWARE_AES
 	bool "Use software based AES"
 	select NRF_OBERON
 	default n
+
+if NRF_SECURITY
+
+config MBEDTLS_HEAP_SIZE
+	default 2048
+
+endif
 
 config ZIGBEE_USE_LEDS
 	bool "LEDs abstract for ZBOSS OSIF"
