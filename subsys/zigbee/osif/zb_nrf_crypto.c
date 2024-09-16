@@ -38,11 +38,16 @@ zb_uint32_t zb_random_seed(void)
 	return rnd_val;
 }
 
-void zb_osif_aes_init(void)
+void psa_init(void)
 {
 	psa_status_t status = psa_crypto_init();
 	ZVUNUSED(status);
 	__ASSERT(status == PSA_SUCCESS, "Cannot initialize PSA crypto");
+}
+
+void zb_osif_aes_init(void)
+{
+	psa_init();
 }
 
 void zb_osif_aes128_hw_encrypt(const zb_uint8_t *key, const zb_uint8_t *msg, zb_uint8_t *c)
@@ -75,4 +80,34 @@ void zb_osif_aes128_hw_encrypt(const zb_uint8_t *key, const zb_uint8_t *msg, zb_
 	__ASSERT(status == PSA_SUCCESS, "psa_cipher_encrypt failed! (Error: %d)", status);
 
 	psa_destroy_key(key_id);
+}
+
+zb_int_t zb_osif_scalarmult(zb_uint8_t *result_point,
+                            const zb_uint8_t *scalar,
+                            const zb_uint8_t *point)
+{
+	psa_status_t status;
+	psa_key_id_t key_id;
+	ZVUNUSED(status);
+
+	psa_init();
+
+	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_ENCRYPT);
+	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
+	psa_set_key_algorithm(&key_attributes, PSA_ALG_ECDH);
+	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(ZB_ECC_CURVE_P256));
+
+	status = psa_import_key(&key_attributes, scalar, PSA_BITS_TO_BYTES(256), &key_id);
+	__ASSERT(status == PSA_SUCCESS, "psa_import failed! (Error: %d)", status);
+
+	psa_reset_key_attributes(&key_attributes);
+
+	size_t output_length;
+	status = psa_raw_key_agreement(PSA_ALG_ECDH, key_id, point, PSA_BITS_TO_BYTES(256),
+			 result_point, PSA_BITS_TO_BYTES(256), &output_length);
+	__ASSERT(status == PSA_SUCCESS, "psa_raw_key_agreement failed! (Error: %d)", status);
+	
+	psa_destroy_key(key_id);
+	return 0;
 }
