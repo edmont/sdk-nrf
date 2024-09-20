@@ -8,7 +8,7 @@ tests:
     integration_platforms:
       - nrf52840dk/nrf52840
 
-    platform_allow: nrf52840dk/nrf52840
+    platform_allow: nrf52840dk/nrf52840 nrf54l15dk/nrf54l15/cpuapp
     tags: ci_build smoke sysbuild ci_samples_zigbee
   sample.zigbee.light_switch.current_measurement:
     sysbuild: true
@@ -52,5 +52,6 @@ tests:
       CONFIG_ZIGBEE_SHELL_ENDPOINT=1 CONFIG_LOG_MODE_DEFERRED=y
     integration_platforms:
       - nrf52840dk/nrf52840
-    platform_allow: nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    platform_allow: nrf52840dk/nrf52840 nrf54l15dk/nrf54l15/cpuapp
     tags: ci_build shell sysbuild ci_samples_zigbee

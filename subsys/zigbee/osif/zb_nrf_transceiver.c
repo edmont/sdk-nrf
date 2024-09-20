@@ -35,7 +35,11 @@
 #define ZBOSS_ED_RESULT_FACTOR 5
 
 #else
-#error "Selected chip is not supported."
+/* Minimum value in dBm detectable by the radio. */
+#define MIN_RADIO_SENSITIVITY (-92)
+/* Factor needed to calculate the ED result based on the data from the RADIO peripheral. */
+#define ZBOSS_ED_RESULT_FACTOR 4
+// #error "Selected chip is not supported."
 #endif
 
 /* dBm value corresponding to value 0 of the energy scan result. */
