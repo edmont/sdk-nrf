@@ -38,6 +38,10 @@
 	("Set max_child number.\n" \
 	"Usage: child_max <d:children_nbr>")
 
+#define MAX_JOINS_HELP \
+	("Set max_joins number.\n" \
+	"Usage: max_joins <d:joiners_nbr>")
+
 #define EXTPANID_HELP \
 	("Set/get extpanid.\n" \
 	"Usage: extpanid [<h:id>]")
@@ -1180,6 +1184,45 @@ static int cmd_child_max(const struct shell *shell, size_t argc, char **argv)
 }
 #endif
 
+#ifdef ZB_ROUTER_ROLE
+#ifdef ZB_CERTIFICATION_HACKS
+/**@brief Set amount of devices which can initiate joining procedure with the device.
+ *
+ * @code
+ * bdb max_joins <d:joiners_nbr>
+ * @endcode
+ *
+ *  @pre Setting only before @ref start "bdb start".
+ *
+ * Example:
+ * @code
+ * > bdb max_joins 16
+ * Setting max joiners to: 16
+ * Done
+ * @endcode
+ */
+static int cmd_max_joins(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+
+	uint32_t max_joins;
+
+	/* Two argc - set the amount of the max_children. */
+	if (zigbee_is_stack_started()) {
+		zb_shell_print_error(shell, "Stack already started", ZB_FALSE);
+		return -ENOEXEC;
+	}
+
+	zb_shell_sscan_uint(argv[1], (uint8_t *)&max_joins, 4, 10);
+	zb_set_max_joins(max_joins);
+	shell_print(shell, "Setting max joiners to: %d", max_joins);
+
+	zb_shell_print_done(shell, ZB_FALSE);
+	return 0;
+}
+#endif /* ZB_CERTIFICATION_HACKS */
+#endif /* ZB_ROUTER_ROLE */
+
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_ic,
 #ifndef ZB_ED_ROLE
 	SHELL_CMD_ARG(add, NULL, IC_ADD_HELP, cmd_zb_install_code, 3, 0),
@@ -1209,6 +1252,11 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_bdb,
 	SHELL_CMD_ARG(channel, NULL, CHANNEL_HELP, cmd_zb_channel, 1, 1),
 #ifndef ZB_ED_ROLE
 	SHELL_CMD_ARG(child_max, NULL, CHILD_MAX_HELP, cmd_child_max, 2, 0),
+#endif
+#ifdef ZB_ROUTER_ROLE
+#ifdef ZB_CERTIFICATION_HACKS
+	SHELL_CMD_ARG(max_joins, NULL, MAX_JOINS_HELP, cmd_max_joins, 2, 0),
+#endif
 #endif
 	SHELL_CMD_ARG(extpanid, NULL, EXTPANID_HELP, cmd_zb_extpanid, 1, 1),
 	SHELL_CMD_ARG(factory_reset, NULL, "Perform factory reset.",

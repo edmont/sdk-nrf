@@ -475,6 +475,31 @@ Example:
 
 ----
 
+.. _bdb_max_joins:
+
+bdb max_joins
+=============
+
+Set amount of devices (*d:nbr*) which can initiate joining procedure with the device
+
+.. parsed-literal::
+   :class: highlight
+
+   > bdb max_joins *d:nbr*
+
+.. note::
+    |precondition2|
+
+Example:
+
+.. code-block::
+
+   > bdb max_joins 2
+   Setting max joiners to: 2
+   Done
+
+----
+
 .. _zcl_cmd:
 
 zcl cmd
