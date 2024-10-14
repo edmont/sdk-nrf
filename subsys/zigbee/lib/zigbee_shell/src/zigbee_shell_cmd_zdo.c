@@ -58,9 +58,7 @@
 
 #define MGMT_LEAVE_HELP \
 	("Perform mgmt_leave_req (see spec. 2.4.3.3.5)\n" \
-	"Usage: mgmt_leave <h:16-bit dst_addr> [h:device_address eui64] " \
-		"[--children] [--rejoin]\n" \
-	"--children - Device should also remove its children when leaving.\n" \
+	"Usage: mgmt_leave <h:16-bit dst_addr> [h:device_address eui64] [--rejoin]\n" \
 	"--rejoin - Device should rejoin network after leave.")
 
 #define MGMT_LQI_HELP \
@@ -1544,9 +1542,7 @@ static bool cmd_zb_mgmt_leave_parse(zb_zdo_mgmt_leave_param_t *mgmt_leave_req,
 	while (arg_idx < argc) {
 		const char *curr_arg = argv[arg_idx];
 
-		if (strcmp(curr_arg, "--children") == 0) {
-			mgmt_leave_req->remove_children = ZB_TRUE;
-		} else if (strcmp(curr_arg, "--rejoin") == 0) {
+		if (strcmp(curr_arg, "--rejoin") == 0) {
 			mgmt_leave_req->rejoin = ZB_TRUE;
 		} else {
 			zb_shell_print_error(shell, "Incorrect argument", ZB_FALSE);
@@ -1562,8 +1558,7 @@ static bool cmd_zb_mgmt_leave_parse(zb_zdo_mgmt_leave_param_t *mgmt_leave_req,
  *        through zdo mgmt_leave_req (see spec. 2.4.3.3.5).
  *
  * @code
- * zdo mgmt_leave <h:16-bit dst_addr> [h:device_address eui64]
- *                [--children] [--rejoin]
+ * zdo mgmt_leave <h:16-bit dst_addr> [h:device_address eui64] [--rejoin]
  * @endcode
  *
  * Send @c mgmt_leave_req to a remote node specified by @c dst_addr.
@@ -1573,7 +1568,7 @@ static bool cmd_zb_mgmt_leave_parse(zb_zdo_mgmt_leave_param_t *mgmt_leave_req,
  * corresponding to @c dst_addr or a long address of child node of @c dst_addr.
  * The request is sent with <em>Remove Children</em> and <em>Rejoin</em> flags
  * set to @c 0 by default. Use options:
- * @c \--children or @c \--rejoin do change respective flags to @c 1.
+ * @c \--rejoin do change respective flag to @c 1.
  * For more details, see section 2.4.3.3.5 of the specification.
  *
  * Examples:
@@ -1596,11 +1591,6 @@ static bool cmd_zb_mgmt_leave_parse(zb_zdo_mgmt_leave_param_t *mgmt_leave_req,
  * @c 0b010ef8872c633e, it will remove itself from the network
  * If the target device with short address @c 0x1234 has a child with long
  * address @c 0b010ef8872c633e, it will remove the child from the network.@n
- * @code
- * zdo mgmt_leave 0x1234 --children
- * @endcode
- * Sends @c mgmt_leave_req to the device with short address @c 0x1234,
- * asking it to remove itself and all its children from the network.@n
  */
 static int cmd_zb_mgmt_leave(const struct shell *shell, size_t argc,
 			     char **argv)
