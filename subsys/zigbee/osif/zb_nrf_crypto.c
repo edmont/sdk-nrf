@@ -150,24 +150,4 @@ zb_int_t zb_osif_scalarmult(zb_uint8_t *result_point,
 	ocrypto_curve25519_scalarmult(result_point, scalar, point);
 	return 0;
 }
-
-zb_ret_t zb_osif_ccm_encrypt_n_auth_raw(zb_uint8_t *key,
-										const zb_uint8_t *nonce,
-										const zb_uint8_t *string_a,
-										zb_uint32_t string_a_len,
-										const zb_uint8_t *string_m,
-										zb_uint32_t string_m_len,
-										zb_uint8_t *dest_buf,
-										zb_uint16_t dest_len)
-{
-	ocrypto_aes_ccm_encrypt(dest_buf,
-							string_a, string_a_len,
-							string_m, string_m_len,
-							key, 16,
-							nonce, 16,
-							NULL, 0);
-	return 0;
-}
-
-
 #endif /* CONFIG_NRF_SECURITY */
