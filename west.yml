@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: edmo
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -145,9 +147,10 @@ manifest:
       repo-path: sdk-oberon-psa-crypto
       revision: 21728cf8402ac567326d0d69eec891a2bfdb8ea3
     - name: nrfxlib
+      remote: edmo
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 4f5042a421417c3d86e9ec7594a930985fe0da6a
+      revision: test/NCSIDB-1405
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
