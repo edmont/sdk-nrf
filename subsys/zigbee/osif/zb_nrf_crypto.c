@@ -9,6 +9,7 @@
 #include <zboss_api.h>
 #if CONFIG_NRF_SECURITY
 #include <psa/crypto.h>
+#include <ocrypto_curve25519.h>
 #else
 #error No crypto suite for Zigbee stack has been selected
 #endif
