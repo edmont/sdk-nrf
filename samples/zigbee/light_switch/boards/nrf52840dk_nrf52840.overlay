@@ -6,9 +6,17 @@
 / {
 	chosen {
 		ncs,zigbee-timer = &timer2;
+		ncs,zboss-trace-uart = &cdc_acm_uart0;
 	};
 };
 
 &timer2 {
 	status = "okay";
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+			compatible = "zephyr,cdc-acm-uart";
+			label = "CDC_ACM_0";
+	};
 };
