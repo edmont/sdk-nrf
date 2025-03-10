@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: edmont
+      url-base: https://github.com/edmont
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -223,9 +225,10 @@ manifest:
       groups:
         - libmodem
     - name: openthread
+      remote: edmont
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: 08ab8a45872be6c996b79ac6d0119fe14cc1bd3f
+      revision: test/csl-time-basis
       userdata:
         ncs:
           upstream-url: https://github.com/openthread/openthread
