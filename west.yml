@@ -42,7 +42,7 @@ manifest:
     remote: ncs
 
   group-filter:
-    - -nrf-802154
+    - +nrf-802154
     - -dragoon
     - -find-my
     - -babblesim
@@ -175,7 +175,7 @@ manifest:
     - name: nrf-802154
       repo-path: sdk-nrf-802154
       path: nrf-802154
-      revision: 81423c2216fb1d724b2ec425bd9afbbe9196f320
+      revision: dtrx-cancel
       groups:
         - nrf-802154
     - name: dragoon
