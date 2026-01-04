@@ -56,7 +56,8 @@ CHIP_ERROR BleServiceToMatterDeviceType(BleBridgedDeviceFactory::ServiceUuid ser
 		count = 1;
 #endif
 	} break;
-	case BleBridgedDeviceFactory::ServiceUuid::EnvironmentalSensorService: {
+	case BleBridgedDeviceFactory::ServiceUuid::EnvironmentalSensorService:
+	case BleBridgedDeviceFactory::ServiceUuid::BtHomeAtcMiThService: {
 		if (maxCount < 2) {
 			return CHIP_ERROR_BUFFER_TOO_SMALL;
 		}
@@ -321,6 +322,10 @@ BleBridgedDeviceFactory::BleDataProviderFactory &BleBridgedDeviceFactory::GetDat
 				  return chip::Platform::New<BleEnvironmentalDataProvider>(updateClb, commandClb);
 			  } },
 #endif
+		{ ServiceUuid::BtHomeAtcMiThService,
+			[](UpdateAttributeCallback updateClb, InvokeCommandCallback commandClb) {
+				return chip::Platform::New<BtHomeAtcMiThDataProvider>(updateClb, commandClb);
+		} },
 	};
 	return sDeviceDataProvider;
 }

@@ -7,6 +7,10 @@
 #include "app_task.h"
 
 #ifdef CONFIG_BRIDGED_DEVICE_BT
+#include "ble/data_providers/bt_home_atc_mith_data_provider.h"
+#endif /* CONFIG_BRIDGED_DEVICE_BT */
+
+#ifdef CONFIG_BRIDGED_DEVICE_BT
 #include "ble_bridged_device_factory.h"
 #else
 #include "simulated_bridged_device_factory.h"
@@ -58,7 +62,8 @@ Nrf::Matter::IdentifyCluster sIdentifyCluster(kBridgeEndpointId);
 #ifdef CONFIG_BRIDGED_DEVICE_BT
 const bt_uuid *sUuidLbs = BT_UUID_LBS;
 const bt_uuid *sUuidEs = BT_UUID_ESS;
-const bt_uuid *sUuidServices[] = { sUuidLbs, sUuidEs };
+const bt_uuid *sUuidBtHomeAtcMiTh = BT_UUID_BT_HOME_ATC_MITHERMOMETER;
+const bt_uuid *sUuidServices[] = { sUuidLbs, sUuidEs, sUuidBtHomeAtcMiTh };
 constexpr uint8_t kUuidServicesNumber = ARRAY_SIZE(sUuidServices);
 /**
  * @brief Blink rates for indication the BLE Connectivity Manager state.

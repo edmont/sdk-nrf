@@ -54,6 +54,10 @@ if(CONFIG_BRIDGED_DEVICE_BT)
     src/ble/data_providers
   )
 
+  target_sources(app PRIVATE
+    src/ble/data_providers/bt_home_atc_mith_data_provider.cpp
+  )
+
 if(CONFIG_BRIDGE_ONOFF_LIGHT_BRIDGED_DEVICE AND (CONFIG_BRIDGE_GENERIC_SWITCH_BRIDGED_DEVICE OR CONFIG_BRIDGE_ONOFF_LIGHT_SWITCH_BRIDGED_DEVICE))
   target_sources(app PRIVATE
     src/bridged_device_types/onoff_light.cpp

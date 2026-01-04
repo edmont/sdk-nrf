@@ -40,11 +40,13 @@
 #include "ble_environmental_data_provider.h"
 #endif
 
+#include "bt_home_atc_mith_data_provider.h"
+
 namespace BleBridgedDeviceFactory
 {
 
 /* The values were assigned based on BT_UUID_16(uuid)->val of a BT services. */
-enum ServiceUuid : uint16_t { LedButtonService = 0xbcd1, EnvironmentalSensorService = 0x181a };
+enum ServiceUuid : uint16_t { LedButtonService = 0xbcd1, EnvironmentalSensorService = 0x181a, BtHomeAtcMiThService = 0xfcd2 };
 
 using UpdateAttributeCallback = Nrf::BridgedDeviceDataProvider::UpdateAttributeCallback;
 using InvokeCommandCallback = Nrf::BridgedDeviceDataProvider::InvokeCommandCallback;

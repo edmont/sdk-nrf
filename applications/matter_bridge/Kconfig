@@ -87,7 +87,7 @@ config BT_SCAN_FILTER_ENABLE
 
 # Configure how many Bluetooth LE service UUIDs the Matter bridge can scan.
 config BT_SCAN_UUID_CNT
-	default 2
+	default 3
 
 config BT_SCAN_ADDRESS_CNT
 	default 1
