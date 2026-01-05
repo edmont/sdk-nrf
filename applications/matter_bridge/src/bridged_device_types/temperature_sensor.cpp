@@ -6,15 +6,15 @@
 
 #include "temperature_sensor.h"
 
+using namespace ::chip;
+using namespace ::chip::app;
+using namespace Nrf;
+
 namespace
 {
 DESCRIPTOR_CLUSTER_ATTRIBUTES(descriptorAttrs);
 BRIDGED_DEVICE_BASIC_INFORMATION_CLUSTER_ATTRIBUTES(bridgedDeviceBasicAttrs);
 }; /* namespace */
-
-using namespace ::chip;
-using namespace ::chip::app;
-using namespace Nrf;
 
 DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(tempSensorAttrs)
 DECLARE_DYNAMIC_ATTRIBUTE(Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Id, INT16S, 2, 0),
@@ -23,8 +23,19 @@ DECLARE_DYNAMIC_ATTRIBUTE(Clusters::TemperatureMeasurement::Attributes::Measured
 	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::TemperatureMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
 	DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
+/* PowerSource cluster attributes for battery reporting */
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(powerSourceAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::Status::Id, ENUM8, 1, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::Order::Id, INT8U, 1, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::Description::Id, CHAR_STRING, 32, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::BatPercentRemaining::Id, INT8U, 1, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::BatChargeLevel::Id, ENUM8, 1, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE(Clusters::PowerSource::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+	DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
 DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTemperatureClusters)
 DECLARE_DYNAMIC_CLUSTER(Clusters::TemperatureMeasurement::Id, tempSensorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+	DECLARE_DYNAMIC_CLUSTER(Clusters::PowerSource::Id, powerSourceAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
 	DECLARE_DYNAMIC_CLUSTER(Clusters::Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
 	DECLARE_DYNAMIC_CLUSTER(Clusters::BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
 DECLARE_DYNAMIC_CLUSTER_LIST_END;
@@ -58,6 +69,8 @@ CHIP_ERROR TemperatureSensorDevice::HandleRead(ClusterId clusterId, AttributeId 
 	switch (clusterId) {
 	case Clusters::TemperatureMeasurement::Id:
 		return HandleReadTemperatureMeasurement(attributeId, buffer, maxReadLength);
+	case Clusters::PowerSource::Id:
+		return HandleReadPowerSource(attributeId, buffer, maxReadLength);
 	default:
 		return CHIP_ERROR_INVALID_ARGUMENT;
 	}
@@ -85,6 +98,44 @@ CHIP_ERROR TemperatureSensorDevice::HandleReadTemperatureMeasurement(AttributeId
 	}
 	case Clusters::TemperatureMeasurement::Attributes::FeatureMap::Id: {
 		uint32_t featureMap = GetTemperatureMeasurementFeatureMap();
+		return CopyAttribute(&featureMap, sizeof(featureMap), buffer, maxReadLength);
+	}
+	default:
+		return CHIP_ERROR_INVALID_ARGUMENT;
+	}
+}
+
+CHIP_ERROR TemperatureSensorDevice::HandleReadPowerSource(AttributeId attributeId, uint8_t *buffer,
+							   uint16_t maxReadLength)
+{
+	switch (attributeId) {
+	case Clusters::PowerSource::Attributes::Status::Id: {
+		uint8_t status = GetBatteryChargeLevel();
+		return CopyAttribute(&status, sizeof(status), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::Order::Id: {
+		uint8_t order = 0; /* Primary power source */
+		return CopyAttribute(&order, sizeof(order), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::Description::Id: {
+		const char *description = "Battery";
+		chip::CharSpan descSpan(description, strlen(description));
+		return CopyAttribute(&descSpan, sizeof(descSpan), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::BatPercentRemaining::Id: {
+		uint8_t batteryPercent = GetBatteryPercentRemaining();
+		return CopyAttribute(&batteryPercent, sizeof(batteryPercent), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::BatChargeLevel::Id: {
+		uint8_t chargeLevel = GetBatteryChargeLevel();
+		return CopyAttribute(&chargeLevel, sizeof(chargeLevel), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::ClusterRevision::Id: {
+		uint16_t clusterRevision = GetPowerSourceClusterRevision();
+		return CopyAttribute(&clusterRevision, sizeof(clusterRevision), buffer, maxReadLength);
+	}
+	case Clusters::PowerSource::Attributes::FeatureMap::Id: {
+		uint32_t featureMap = GetPowerSourceFeatureMap();
 		return CopyAttribute(&featureMap, sizeof(featureMap), buffer, maxReadLength);
 	}
 	default:
@@ -143,6 +194,26 @@ CHIP_ERROR TemperatureSensorDevice::HandleAttributeChange(chip::ClusterId cluste
 			}
 
 			SetMaxMeasuredValue(value);
+
+			break;
+		}
+		default:
+			return CHIP_ERROR_INVALID_ARGUMENT;
+		}
+		break;
+	}
+	case Clusters::PowerSource::Id: {
+		switch (attributeId) {
+		case Clusters::PowerSource::Attributes::BatPercentRemaining::Id: {
+			uint8_t value;
+
+			err = CopyAttribute(data, dataSize, &value, sizeof(value));
+
+			if (err != CHIP_NO_ERROR) {
+				return err;
+			}
+
+			SetBatteryPercentRemaining(value);
 
 			break;
 		}

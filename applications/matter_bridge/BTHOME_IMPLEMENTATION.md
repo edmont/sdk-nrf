@@ -3,15 +3,11 @@
 ## Overview
 This implementation adds support for BTHome-compatible ATC MiThermometer devices (Xiaomi Mijia LYWSD03MMC) to the Nordic Matter Bridge application. These devices broadcast temperature, humidity, and battery data using the BTHome v2 protocol over BLE advertisements.
 
-**Key Innovation**: Unlike traditional BLE sensors that require GATT connections, BTHome devices are **advertisement-only** - they broadcast data in BLE Service Data without supporting connections or pairing. This implementation includes special handling for advertisement-only devices in the Matter Bridge architecture.
-
 ## Device Specification
 - **Device**: ATC MiThermometer (Xiaomi Mijia LYWSD03MMC)
 - **Protocol**: BTHome v2 (https://bthome.io/)
 - **Service UUID**: 0xFCD2 (128-bit: 0000fcd2-0000-1000-8000-00805f9b34fb)
 - **Data Format**: BLE Service Data advertisements (passive broadcast)
-- **Connection Support**: None - advertisement-only operation
-- **Pairing Support**: Not required - no security needed for advertisements
 
 ### BTHome v2 Data Format
 The ATC MiThermometer broadcasts data in BLE advertisements using the BTHome v2 format:
@@ -19,13 +15,10 @@ The ATC MiThermometer broadcasts data in BLE advertisements using the BTHome v2 
 - **Humidity** (Object ID 0x03): uint16, factor 0.01, %
 - **Battery** (Object ID 0x01): uint8, factor 1, %
 
-**Important**: The BTHome UUID (0xFCD2) is broadcast in **Service Data** (BT_DATA_SVC_DATA16), not in the Service UUID list. This required custom advertisement parsing logic.
-
 ## Matter Device Type Mapping
 The BTHome service is mapped to the following Matter device types:
-- **Temperature Sensor** (0x0302)
+- **Temperature Sensor** (0x0302) - with PowerSource cluster for battery reporting
 - **Humidity Sensor** (0x0307)
-- **Power Source** (for battery reporting)
 
 ## Implementation Details
 
@@ -48,7 +41,7 @@ Key features:
 - Stores sensor data in private member variables:
   - `mTemperatureValue` (int16_t) - Temperature in °C × 100
   - `mHumidityValue` (uint16_t) - Humidity in % × 100
-  - `mBatteryValue` (uint8_t) - Battery percentage
+  - `mBatteryValue` (uint8_t) - Battery percentage (0-100%)
 - Declares static notification callbacks for asynchronous Matter updates
 
 #### 2. `src/ble/data_providers/bt_home_atc_mith_data_provider.cpp`
@@ -62,9 +55,9 @@ Key implementation details:
 - **UpdateState()**: Handles Matter attribute write requests (only supports NodeLabel updates)
 - **ParseDiscoveredData()**: Minimal implementation - BTHome data comes from advertisements, not GATT discovery
 - **Notification Callbacks**: Three static methods that schedule Matter attribute updates:
-  - `NotifyTemperatureAttributeChange()` - Updates TemperatureMeasurement cluster
-  - `NotifyHumidityAttributeChange()` - Updates RelativeHumidityMeasurement cluster  
-  - `NotifyBatteryAttributeChange()` - Updates PowerSource cluster (converts percentage to half-percent units)
+  - `NotifyTemperatureAttributeChange()` - Updates TemperatureMeasurement cluster on Temperature Sensor endpoint
+  - `NotifyHumidityAttributeChange()` - Updates RelativeHumidityMeasurement cluster on Humidity Sensor endpoint
+  - `NotifyBatteryAttributeChange()` - Updates PowerSource cluster on Temperature Sensor endpoint (converts 0-100% to 0-200 half-percent units)
 
 **Important Architecture Note**: BTHome devices broadcast sensor data in BLE advertisements (Service Data) rather than through GATT characteristics. The actual advertisement parsing would be handled by the BLE Connectivity Manager. This data provider focuses on the Matter integration layer, providing the interface between parsed BTHome data and the Matter Data Model.
 
@@ -130,6 +123,72 @@ This configuration option controls how many different BLE service UUIDs the brid
 2. Environmental Sensor Service (ESS) - 0x181a  
 3. BTHome ATC MiThermometer Service - 0xfcd2
 
+#### 8. `src/bridged_device_types/temperature_sensor.h`
+**Modified** - Added PowerSource cluster support for battery reporting.
+
+Changes:
+- Added PowerSource cluster handler methods:
+  - `HandleReadPowerSource()` - Handles reads of PowerSource cluster attributes
+  - `GetBatteryPercentRemaining()` - Returns battery percentage in half-percent units (0-200)
+  - `GetBatteryChargeLevel()` - Returns battery charge level (0=OK, 1=Warning, 2=Critical)
+- Added PowerSource cluster metadata:
+  - `GetPowerSourceClusterRevision()` - Returns cluster revision 2
+  - `GetPowerSourceFeatureMap()` - Returns feature map (0 = no optional features)
+- Added private setters and member variables:
+  - `SetBatteryPercentRemaining()` - Updates battery percentage
+  - `SetBatteryChargeLevel()` - Updates battery charge level
+  - `mBatteryPercentRemaining` - Stores battery level (default: 200 = 100%)
+  - `mBatteryChargeLevel` - Stores charge status (default: 0 = OK)
+
+#### 9. `src/bridged_device_types/temperature_sensor.cpp`
+**Modified** - Implemented PowerSource cluster functionality.
+
+Changes:
+- **PowerSource Cluster Attributes Declaration**: Added `powerSourceAttrs` with:
+  - Status (ENUM8) - Power source status
+  - Order (INT8U) - Power source priority (0 = primary)
+  - Description (CHAR_STRING) - Human-readable description ("Battery")
+  - BatPercentRemaining (INT8U) - Battery percentage in half-percent units (0-200)
+  - BatChargeLevel (ENUM8) - Charge level indicator (0/1/2)
+  - FeatureMap (BITMAP32) - Cluster feature bitmap
+
+- **Cluster List Update**: Added PowerSource cluster to `bridgedTemperatureClusters`:
+  ```cpp
+  DECLARE_DYNAMIC_CLUSTER(Clusters::PowerSource::Id, powerSourceAttrs, 
+                          ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr)
+  ```
+
+- **HandleRead() Update**: Added PowerSource case to route reads to `HandleReadPowerSource()`
+
+- **HandleReadPowerSource() Implementation**: Handles all PowerSource attribute reads:
+  - Status: Returns current charge level
+  - Order: Returns 0 (primary power source)
+  - Description: Returns "Battery" as CharSpan
+  - BatPercentRemaining: Returns battery percentage (0-200, where 200 = 100%)
+  - BatChargeLevel: Returns charge level enum (0=OK, 1=Warning, 2=Critical)
+  - ClusterRevision: Returns 2
+  - FeatureMap: Returns 0
+
+- **HandleAttributeChange() Update**: Added PowerSource case to handle battery updates:
+  - BatPercentRemaining: Converts incoming data and calls `SetBatteryPercentRemaining()`
+
+- **Namespace Organization**: Moved `using namespace` declarations before anonymous namespace to resolve PowerSource attribute compilation errors
+
+**Battery Format**: Matter PowerSource cluster uses half-percent units (0-200) for battery reporting, where:
+- 0 = 0% (empty)
+- 100 = 50%
+- 200 = 100% (full)
+
+This allows for 0.5% precision in battery level reporting.
+
+#### 10. `prj.conf`
+**Modified** - Extended BLE scan timeout.
+
+Changes:
+- Added `CONFIG_BRIDGE_BT_SCAN_TIMEOUT_MS=15000` to increase scan duration from default 10s to 15s
+
+This provides more time for BTHome devices to be discovered during BLE scanning, improving reliability of device detection.
+
 ## Usage
 
 ### Scanning for BTHome Devices
@@ -189,10 +248,20 @@ To test the implementation:
    - Configure it to broadcast in BTHome v2 format
    - Ensure the device is advertising
 
-2. **Build the Matter Bridge**:
+2. **Build the Matter Bridge with Bluetooth LE support**:
+   
+   **Important**: The default Matter Bridge configuration uses simulated devices. You must enable Bluetooth LE bridged devices to use BTHome sensors.
+   
    ```bash
    cd nrf/applications/matter_bridge
-   west build -b nrf7002dk/nrf5340/cpuapp
+   west build -b nrf7002dk/nrf5340/cpuapp -- -DCONFIG_BRIDGED_DEVICE_BT=y
+   ```
+   
+   Alternatively, use menuconfig:
+   ```bash
+   west build -b nrf7002dk/nrf5340/cpuapp -t menuconfig
+   # Navigate to: Bridged Device implementation → Select "Bluetooth LE Bridged Device"
+   west build
    ```
 
 3. **Flash and Run**:
@@ -200,7 +269,12 @@ To test the implementation:
    west flash
    ```
 
-4. **Connect to UART console** and wait for the bridge to initialize
+4. **Connect to UART console** and verify BT commands are available:
+   ```
+   uart:~$ matter_bridge
+   ```
+   
+   You should see `scan`, `add`, `remove`, and `list` subcommands. If `scan` is not listed, `CONFIG_BRIDGED_DEVICE_BT` was not enabled.
 
 5. **Scan for BTHome Devices**:
    ```
@@ -209,11 +283,12 @@ To test the implementation:
    
    Expected output should show the BTHome device with UUID 0xfcd2:
    ```
+   Scanning for 30 s ...
    Scan result:
    ---------------------------------------------------------------------
    | Index |      Address      |                   UUID
    ---------------------------------------------------------------------
-   | 0     | A4:C1:38:XX:XX:XX | 0xfcd2 (BTHome)
+   | 0     | A4:C1:38:XX:XX:XX | 0xfcd2 (BTHome ATC MiThermometer)
    ```
 
 6. **Add the BTHome Device**:
@@ -245,96 +320,55 @@ To test the implementation:
    ---------------------------------------------------------------------
    Total: 2 device(s)
    ```
+   
+   **Note**: Endpoint 3 (Temperature Sensor) includes both the TemperatureMeasurement cluster and the PowerSource cluster for battery reporting. The battery information is not shown as a separate endpoint because PowerSource is a cluster attribute, not a distinct device type in Matter.
 
 8. **Commission the Bridge** to a Matter network and verify the temperature and humidity sensors appear in your Matter controller (e.g., Google Home, Apple Home, Home Assistant).
 
-## Technical Challenges and Solutions
-
-### Challenge 1: Service Data vs Service UUID Detection
-
-**Problem**: The Nordic bt_scan library's `bt_scan_filter_add(BT_SCAN_FILTER_TYPE_UUID, ...)` only matches devices advertising Service UUIDs in the BLE advertisement packet. BTHome devices broadcast their UUID (0xFCD2) in **Service Data** (BT_DATA_SVC_DATA16), not as a Service UUID.
-
-**Symptoms**: 
-- BTHome devices visible in nRF Connect app
-- `matter_bridge scan` shows empty results
-- Filter match callback never triggered
-
-**Solution**: 
-1. Added `FilterNoMatch` callback to `BLEConnectivityManager` to handle devices that don't match Service UUID filters
-2. Implemented custom advertisement parsing using `bt_data_parse()` with a lambda callback
-3. Manually search advertisement data for BT_DATA_SVC_DATA16 with UUID 0xFCD2
-4. Add matching devices to scan results
-
-**Code Location**: `ble_connectivity_manager.cpp:FilterNoMatch()`
-
-### Challenge 2: Advertisement-Only Architecture (No Connections)
-
-**Problem**: Matter Bridge architecture assumes all BLE devices support GATT connections. Calling `bt_conn_le_create()` on BTHome devices results in:
-```
-E: pairing failed (peer reason 0x5)
-E: Security failed: level 1 err 5
-I: Disconnected: A4:C1:38:88:03:10 (public) (reason 22)
-```
-
-**Root Cause**: BTHome devices are advertisement-only and don't support BLE connections or pairing.
-
-**Solution**:
-1. Modified `BleBridgedDeviceFactory::CreateDevice()` to detect BTHome service UUID
-2. For BTHome devices, skip `BLEConnectivityManager::Connect()` call
-3. Directly invoke `BluetoothDeviceConnected(true, context)` to trigger endpoint creation
-4. Matter endpoints created successfully without establishing BLE connection
-
-**Code Location**: `ble_bridged_device_factory.cpp:428-445`
-
-### Challenge 3: Callback Signature Mismatch
-
-**Problem**: Initial attempt called callback with wrong signature:
-```cpp
-BluetoothDeviceConnected(contextPtr.get(), 0);  // Wrong!
-```
-
-**Root Cause**: Callback signature is `(bool success, void *context)`, not `(void *context, int error)`.
-
-**Solution**: Corrected to:
-```cpp
-BluetoothDeviceConnected(true, contextPtr.get());  // Correct
-```
-
-**Result**: Matter endpoints created successfully after device scan.
-
-### Challenge 4: UUID Display Name
-
-**Problem**: Scan results showed "Unknown" for BTHome UUID.
-
-**Solution**: Added BTHome case to `GetUuidString()` function to display "BTHome" instead of "Unknown".
-
-**Code Location**: `ble_bridged_device_factory.cpp:500-501`
-
-## Current Limitations
-
-### Sensor Data Not Updated
-The current implementation successfully:
-- ✅ Detects BTHome devices via Service Data parsing
-- ✅ Creates Matter endpoints without GATT connection
-- ✅ Bypasses pairing for advertisement-only devices
-
-However, sensor values (temperature, humidity, battery) are not yet updated because:
-- Advertisement data parsing is not implemented
-- No mechanism to monitor ongoing advertisements from bridged devices
-- Notification callbacks are prepared but not called with real data
-
-**Next Steps for Full Functionality**:
-1. Implement advertisement monitoring for bridged BTHome devices
-2. Parse BTHome v2 packet format from Service Data payload:
+9. **Verify Battery Reporting**: Use a Matter controller or chip-tool to read the PowerSource cluster on endpoint 3:
+   ```bash
+   # Read battery percentage (in half-percent units, 0-200)
+   chip-tool powersource read bat-percent-remaining <node-id> 3
+   
+   # Read battery charge level (0=OK, 1=Warning, 2=Critical)
+   chip-tool powersource read bat-charge-level <node-id> 3
    ```
-   Byte 0: Device Info (encryption, version, etc.)
-   Byte 1+: Object ID + Value pairs
-   ```
-3. Extract temperature, humidity, and battery values
-4. Call provider notification callbacks:
-   - `NotifyTemperatureAttributeChange()`
-   - `NotifyHumidityAttributeChange()`
-   - `NotifyBatteryAttributeChange()`
+
+## Battery Reporting Details
+
+### PowerSource Cluster Integration
+Battery information from BTHome devices is exposed through the Matter PowerSource cluster on the Temperature Sensor endpoint (endpoint 3). This follows the Matter specification pattern where power source information is a cluster on the device that uses it, rather than a separate endpoint.
+
+### Supported Attributes
+The PowerSource cluster implementation includes:
+
+| Attribute | ID | Type | Description | Value |
+|-----------|-----|------|-------------|-------|
+| Status | 0x0000 | ENUM8 | Power source status | Same as BatChargeLevel |
+| Order | 0x0001 | UINT8 | Power source priority | 0 (primary) |
+| Description | 0x0002 | String | Human-readable name | "Battery" |
+| BatPercentRemaining | 0x000C | UINT8 | Battery % (0-200) | 0-200 (200 = 100%) |
+| BatChargeLevel | 0x000E | ENUM8 | Charge level | 0=OK, 1=Warning, 2=Critical |
+| FeatureMap | 0xFFFC | BITMAP32 | Cluster features | 0 (no optional features) |
+| ClusterRevision | 0xFFFD | UINT16 | Cluster revision | 2 |
+
+### Battery Percentage Format
+Matter's PowerSource cluster uses **half-percent units** for battery reporting:
+- Range: 0-200
+- Resolution: 0.5%
+- Formula: `Matter_Value = BTHome_Percentage * 2`
+- Examples:
+  - BTHome: 100% → Matter: 200
+  - BTHome: 50% → Matter: 100
+  - BTHome: 25.5% → Matter: 51
+
+### Charge Level Mapping
+The charge level enum provides quick battery status assessment:
+- **0 (OK)**: Battery is healthy (typically > 20%)
+- **1 (Warning)**: Battery is low (typically 10-20%)
+- **2 (Critical)**: Battery is critically low (typically < 10%)
+
+The conversion from BTHome battery percentage to charge level can be implemented based on application requirements.
 
 ## Compliance
 

@@ -21,6 +21,7 @@ public:
 			      uint16_t maxReadLength) override;
 	CHIP_ERROR HandleReadTemperatureMeasurement(chip::AttributeId attributeId, uint8_t *buffer,
 						    uint16_t maxReadLength);
+	CHIP_ERROR HandleReadPowerSource(chip::AttributeId attributeId, uint8_t *buffer, uint16_t maxReadLength);
 	CHIP_ERROR HandleWrite(chip::ClusterId clusterId, chip::AttributeId attributeId, uint8_t *buffer,
 			       size_t size) override
 	{
@@ -39,15 +40,24 @@ public:
 	CHIP_ERROR HandleAttributeChange(chip::ClusterId clusterId, chip::AttributeId attributeId, void *data,
 					 size_t dataSize) override;
 
+	uint8_t GetBatteryPercentRemaining() { return mBatteryPercentRemaining; }
+	uint8_t GetBatteryChargeLevel() { return mBatteryChargeLevel; }
+
 	static constexpr uint16_t GetTemperatureMeasurementClusterRevision() { return 4; }
 	static constexpr uint32_t GetTemperatureMeasurementFeatureMap() { return 0; }
+	static constexpr uint16_t GetPowerSourceClusterRevision() { return 2; }
+	static constexpr uint32_t GetPowerSourceFeatureMap() { return 0; }
 
 private:
 	void SetMeasuredValue(int16_t value) { mMeasuredValue = value; }
 	void SetMinMeasuredValue(int16_t value) { mMinMeasuredValue = value; }
 	void SetMaxMeasuredValue(int16_t value) { mMaxMeasuredValue = value; }
+	void SetBatteryPercentRemaining(uint8_t value) { mBatteryPercentRemaining = value; }
+	void SetBatteryChargeLevel(uint8_t value) { mBatteryChargeLevel = value; }
 
 	int16_t mMeasuredValue = 0;
 	int16_t mMinMeasuredValue = CONFIG_BRIDGE_TEMPERATURE_SENSOR_MIN_MEASURED_VALUE;
 	int16_t mMaxMeasuredValue = CONFIG_BRIDGE_TEMPERATURE_SENSOR_MAX_MEASURED_VALUE;
+	uint8_t mBatteryPercentRemaining = 200; /* 100% in half-percent units (200 = 100%) */
+	uint8_t mBatteryChargeLevel = 0; /* 0 = OK, 1 = Warning, 2 = Critical */
 };
