@@ -237,6 +237,7 @@ public:
 
 	/* Public static callbacks for Bluetooth LE connection handling. */
 	static void FilterMatch(bt_scan_device_info *device_info, bt_scan_filter_match *filter_match, bool connectable);
+	static void FilterNoMatch(bt_scan_device_info *device_info, bool connectable);
 	static void ScanTimeoutCallback(k_timer *timer);
 	static void ScanTimeoutHandle(intptr_t context);
 	static void ConnectionHandler(bt_conn *conn, uint8_t conn_err);

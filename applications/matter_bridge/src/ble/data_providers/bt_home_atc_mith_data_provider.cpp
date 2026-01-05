@@ -25,14 +25,6 @@ static const bt_uuid *sServiceUuid = BT_UUID_BT_HOME_ATC_MITHERMOMETER;
 #define BTHOME_OBJ_ID_HUMIDITY    0x03  /* uint16, factor 0.01, % */
 #define BTHOME_OBJ_ID_BATTERY     0x01  /* uint8, factor 1, % */
 
-namespace {
-BtHomeAtcMiThDataProvider *GetBtHomeProvider(bt_conn *conn)
-{
-	return static_cast<BtHomeAtcMiThDataProvider *>(
-		BLEConnectivityManager::Instance().FindBLEProvider(*bt_conn_get_dst(conn)));
-}
-} /* namespace */
-
 const bt_uuid *BtHomeAtcMiThDataProvider::GetServiceUuid()
 {
 	return sServiceUuid;

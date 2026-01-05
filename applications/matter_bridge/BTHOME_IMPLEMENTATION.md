@@ -3,17 +3,23 @@
 ## Overview
 This implementation adds support for BTHome-compatible ATC MiThermometer devices (Xiaomi Mijia LYWSD03MMC) to the Nordic Matter Bridge application. These devices broadcast temperature, humidity, and battery data using the BTHome v2 protocol over BLE advertisements.
 
+**Key Innovation**: Unlike traditional BLE sensors that require GATT connections, BTHome devices are **advertisement-only** - they broadcast data in BLE Service Data without supporting connections or pairing. This implementation includes special handling for advertisement-only devices in the Matter Bridge architecture.
+
 ## Device Specification
 - **Device**: ATC MiThermometer (Xiaomi Mijia LYWSD03MMC)
 - **Protocol**: BTHome v2 (https://bthome.io/)
 - **Service UUID**: 0xFCD2 (128-bit: 0000fcd2-0000-1000-8000-00805f9b34fb)
 - **Data Format**: BLE Service Data advertisements (passive broadcast)
+- **Connection Support**: None - advertisement-only operation
+- **Pairing Support**: Not required - no security needed for advertisements
 
 ### BTHome v2 Data Format
 The ATC MiThermometer broadcasts data in BLE advertisements using the BTHome v2 format:
 - **Temperature** (Object ID 0x02): sint16, factor 0.01, °C
 - **Humidity** (Object ID 0x03): uint16, factor 0.01, %
 - **Battery** (Object ID 0x01): uint8, factor 1, %
+
+**Important**: The BTHome UUID (0xFCD2) is broadcast in **Service Data** (BT_DATA_SVC_DATA16), not in the Service UUID list. This required custom advertisement parsing logic.
 
 ## Matter Device Type Mapping
 The BTHome service is mapped to the following Matter device types:
@@ -241,6 +247,94 @@ To test the implementation:
    ```
 
 8. **Commission the Bridge** to a Matter network and verify the temperature and humidity sensors appear in your Matter controller (e.g., Google Home, Apple Home, Home Assistant).
+
+## Technical Challenges and Solutions
+
+### Challenge 1: Service Data vs Service UUID Detection
+
+**Problem**: The Nordic bt_scan library's `bt_scan_filter_add(BT_SCAN_FILTER_TYPE_UUID, ...)` only matches devices advertising Service UUIDs in the BLE advertisement packet. BTHome devices broadcast their UUID (0xFCD2) in **Service Data** (BT_DATA_SVC_DATA16), not as a Service UUID.
+
+**Symptoms**: 
+- BTHome devices visible in nRF Connect app
+- `matter_bridge scan` shows empty results
+- Filter match callback never triggered
+
+**Solution**: 
+1. Added `FilterNoMatch` callback to `BLEConnectivityManager` to handle devices that don't match Service UUID filters
+2. Implemented custom advertisement parsing using `bt_data_parse()` with a lambda callback
+3. Manually search advertisement data for BT_DATA_SVC_DATA16 with UUID 0xFCD2
+4. Add matching devices to scan results
+
+**Code Location**: `ble_connectivity_manager.cpp:FilterNoMatch()`
+
+### Challenge 2: Advertisement-Only Architecture (No Connections)
+
+**Problem**: Matter Bridge architecture assumes all BLE devices support GATT connections. Calling `bt_conn_le_create()` on BTHome devices results in:
+```
+E: pairing failed (peer reason 0x5)
+E: Security failed: level 1 err 5
+I: Disconnected: A4:C1:38:88:03:10 (public) (reason 22)
+```
+
+**Root Cause**: BTHome devices are advertisement-only and don't support BLE connections or pairing.
+
+**Solution**:
+1. Modified `BleBridgedDeviceFactory::CreateDevice()` to detect BTHome service UUID
+2. For BTHome devices, skip `BLEConnectivityManager::Connect()` call
+3. Directly invoke `BluetoothDeviceConnected(true, context)` to trigger endpoint creation
+4. Matter endpoints created successfully without establishing BLE connection
+
+**Code Location**: `ble_bridged_device_factory.cpp:428-445`
+
+### Challenge 3: Callback Signature Mismatch
+
+**Problem**: Initial attempt called callback with wrong signature:
+```cpp
+BluetoothDeviceConnected(contextPtr.get(), 0);  // Wrong!
+```
+
+**Root Cause**: Callback signature is `(bool success, void *context)`, not `(void *context, int error)`.
+
+**Solution**: Corrected to:
+```cpp
+BluetoothDeviceConnected(true, contextPtr.get());  // Correct
+```
+
+**Result**: Matter endpoints created successfully after device scan.
+
+### Challenge 4: UUID Display Name
+
+**Problem**: Scan results showed "Unknown" for BTHome UUID.
+
+**Solution**: Added BTHome case to `GetUuidString()` function to display "BTHome" instead of "Unknown".
+
+**Code Location**: `ble_bridged_device_factory.cpp:500-501`
+
+## Current Limitations
+
+### Sensor Data Not Updated
+The current implementation successfully:
+- ✅ Detects BTHome devices via Service Data parsing
+- ✅ Creates Matter endpoints without GATT connection
+- ✅ Bypasses pairing for advertisement-only devices
+
+However, sensor values (temperature, humidity, battery) are not yet updated because:
+- Advertisement data parsing is not implemented
+- No mechanism to monitor ongoing advertisements from bridged devices
+- Notification callbacks are prepared but not called with real data
+
+**Next Steps for Full Functionality**:
+1. Implement advertisement monitoring for bridged BTHome devices
+2. Parse BTHome v2 packet format from Service Data payload:
+   ```
+   Byte 0: Device Info (encryption, version, etc.)
+   Byte 1+: Object ID + Value pairs
+   ```
+3. Extract temperature, humidity, and battery values
+4. Call provider notification callbacks:
+   - `NotifyTemperatureAttributeChange()`
+   - `NotifyHumidityAttributeChange()`
+   - `NotifyBatteryAttributeChange()`
 
 ## Compliance
 

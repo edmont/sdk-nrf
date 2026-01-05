@@ -18,7 +18,7 @@ LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
 using namespace chip;
 
-BT_SCAN_CB_INIT(scan_cb, Nrf::BLEConnectivityManager::FilterMatch, NULL, NULL, NULL);
+BT_SCAN_CB_INIT(scan_cb, Nrf::BLEConnectivityManager::FilterMatch, Nrf::BLEConnectivityManager::FilterNoMatch, NULL, NULL);
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = Nrf::BLEConnectivityManager::ConnectionHandler,
@@ -78,12 +78,70 @@ void BLEConnectivityManager::FilterMatch(bt_scan_device_info *device_info, bt_sc
 	scannedDevices[scannedDevicesCounter].mAddr = *device_info->recv_info->addr;
 	scannedDevices[scannedDevicesCounter].mConnParam = *device_info->conn_param;
 
+	/* This handles Service UUID matches (LBS, ESS) */
 	if (!filter_match->uuid.match) {
 		return;
 	}
 
 	scannedDevices[scannedDevicesCounter].mUuid = BT_UUID_16(filter_match->uuid.uuid[0])->val;
 	Instance().mScannedDevicesCounter++;
+}
+
+void BLEConnectivityManager::FilterNoMatch(bt_scan_device_info *device_info, bool connectable)
+{
+	if (!device_info) {
+		return;
+	}
+
+	auto scannedDevices = Instance().mScannedDevices;
+	auto scannedDevicesCounter = Instance().mScannedDevicesCounter;
+
+	/* Limit the number of devices that can be scanned. */
+	if (scannedDevicesCounter >= kMaxScannedDevices) {
+		return;
+	}
+
+	/* Verify the device address to make sure that the scan result will be handled only once for every device. */
+	for (int i = 0; i < scannedDevicesCounter; i++) {
+		if (memcmp(device_info->recv_info->addr, &scannedDevices[i].mAddr, sizeof(scannedDevices[i].mAddr)) ==
+		    0) {
+			return;
+		}
+	}
+
+	/* Check for BTHome Service Data (UUID 0xFCD2) in advertisement data */
+	if (device_info->adv_data) {
+		struct bt_data_parser {
+			uint16_t target_uuid;
+			bool found;
+		};
+		
+		auto parse_callback = [](struct bt_data *data, void *user_data) -> bool {
+			auto *parser = static_cast<struct bt_data_parser *>(user_data);
+			
+			/* Look for Service Data (16-bit UUID) */
+			if (data->type == BT_DATA_SVC_DATA16) {
+				if (data->data_len >= 2) {
+					uint16_t uuid = sys_get_le16(data->data);
+					if (uuid == parser->target_uuid) {
+						parser->found = true;
+						return false; /* Stop parsing */
+					}
+				}
+			}
+			return true; /* Continue parsing */
+		};
+
+		struct bt_data_parser parser = { .target_uuid = 0xfcd2, .found = false };
+		bt_data_parse(device_info->adv_data, parse_callback, &parser);
+
+		if (parser.found) {
+			scannedDevices[scannedDevicesCounter].mAddr = *device_info->recv_info->addr;
+			scannedDevices[scannedDevicesCounter].mConnParam = *device_info->conn_param;
+			scannedDevices[scannedDevicesCounter].mUuid = 0xfcd2;
+			Instance().mScannedDevicesCounter++;
+		}
+	}
 }
 
 int BLEConnectivityManager::StartGattDiscovery(bt_conn *conn, BLEBridgedDeviceProvider *provider)

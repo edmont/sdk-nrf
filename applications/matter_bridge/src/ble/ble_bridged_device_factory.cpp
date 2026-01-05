@@ -428,10 +428,20 @@ CHIP_ERROR BleBridgedDeviceFactory::CreateDevice(uint16_t uuid, bt_addr_le_t btA
 	contextPtr->address = btAddress;
 
 	provider->InitializeBridgedDevice(btAddress, BluetoothDeviceConnected, contextPtr.get());
-	err = BLEConnectivityManager::Instance().Connect(provider, request);
-
-	if (err == CHIP_NO_ERROR) {
+	
+	/* BTHome devices use advertisement-only mode, skip GATT connection */
+	if (uuid == ServiceUuid::BtHomeAtcMiThService) {
+		/* Directly call the connection callback for BTHome devices */
+		BluetoothDeviceConnected(true, contextPtr.get());
 		contextPtr.release();
+		err = CHIP_NO_ERROR;
+	} else {
+		/* Traditional BLE devices need GATT connection */
+		err = BLEConnectivityManager::Instance().Connect(provider, request);
+
+		if (err == CHIP_NO_ERROR) {
+			contextPtr.release();
+		}
 	}
 
 exit:
@@ -487,6 +497,8 @@ const char *BleBridgedDeviceFactory::GetUuidString(uint16_t uuid)
 		return "Led Button Service";
 	case ServiceUuid::EnvironmentalSensorService:
 		return "Environmental Sensing Service";
+	case ServiceUuid::BtHomeAtcMiThService:
+		return "BTHome";
 	default:
 		return "Unknown";
 	}

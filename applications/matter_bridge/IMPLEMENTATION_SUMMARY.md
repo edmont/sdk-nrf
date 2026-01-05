@@ -23,11 +23,13 @@ BTHome devices broadcast sensor data in BLE advertisements using Service Data (U
  applications/matter_bridge/CMakeLists.txt                                            |   3 +
  applications/matter_bridge/Kconfig                                                   |   2 +-
  applications/matter_bridge/src/app_task.cpp                                          |   4 +
- applications/matter_bridge/src/ble/ble_bridged_device_factory.cpp                    |   6 ++
+ applications/matter_bridge/src/ble/ble_bridged_device_factory.cpp                    |  20 ++++++
  applications/matter_bridge/src/ble/ble_bridged_device_factory.h                      |   4 +-
- applications/matter_bridge/src/ble/data_providers/bt_home_atc_mith_data_provider.cpp | 114 +++++++++++++++++++++
- applications/matter_bridge/src/ble/data_providers/bt_home_atc_mith_data_provider.h   |  39 +++++++
- 7 files changed, 170 insertions(+), 2 deletions(-)
+ applications/matter_bridge/src/ble/ble_connectivity_manager.cpp                      |  59 ++++++++++++++++
+ applications/matter_bridge/src/ble/ble_connectivity_manager.h                        |   1 +
+ applications/matter_bridge/src/ble/data_providers/bt_home_atc_mith_data_provider.cpp | 107 +++++++++++++++++++++++++++++
+ applications/matter_bridge/src/ble/data_providers/bt_home_atc_mith_data_provider.h   |  39 +++++++++++
+ 9 files changed, 237 insertions(+), 2 deletions(-)
 ```
 
 ### Component Overview
@@ -63,9 +65,30 @@ BTHome devices broadcast sensor data in BLE advertisements using Service Data (U
 - `CMakeLists.txt` - Added data provider source file to build
 - `Kconfig` - Increased `BT_SCAN_UUID_CNT` from 2 to 3
 
+#### 4. **BLE Connectivity Manager** (Modified)
+- `ble_connectivity_manager.h` - Added `FilterNoMatch` callback declaration
+- `ble_connectivity_manager.cpp` - Implemented Service Data UUID parsing and advertisement-only device support
+
+**Key Changes**:
+- **Service Data Parsing**: Added `FilterNoMatch` callback to parse BLE advertisements for BTHome Service Data (UUID 0xFCD2)
+- **Advertisement Detection**: BTHome devices broadcast their UUID in Service Data, not Service UUIDs, requiring custom parsing logic
+- **Connection Bypass**: Modified factory to skip GATT connection for BTHome devices since they are advertisement-only
+
+#### 5. **Factory Enhancements** (Modified)
+- `ble_bridged_device_factory.cpp` - Added:
+  - Advertisement-only connection bypass for BTHome devices
+  - UUID name mapping ("BTHome" instead of "Unknown")
+  - Direct callback invocation for BTHome to skip pairing
+
 ### Architecture Highlights
 
-**Advertisement-Based Design**: Unlike traditional BLE sensors (ESS, LBS) that use GATT characteristics and subscriptions, BTHome devices broadcast data in BLE advertisements. This implementation provides the Matter integration layer while the actual advertisement parsing would be handled by the BLE Connectivity Manager.
+**Advertisement-Based Design**: Unlike traditional BLE sensors (ESS, LBS) that use GATT characteristics and subscriptions, BTHome devices broadcast data in BLE advertisements using Service Data. This implementation provides the Matter integration layer with special handling for advertisement-only devices:
+
+1. **Service Data Detection**: BTHome UUID (0xFCD2) is broadcast in Service Data (BT_DATA_SVC_DATA16), not in Service UUIDs. A custom `FilterNoMatch` callback parses advertisement data to detect BTHome devices.
+
+2. **Connection-less Operation**: BTHome devices don't support GATT connections or pairing. The factory bypasses the connection step and directly invokes the success callback.
+
+3. **No GATT Discovery**: Unlike traditional BLE sensors, BTHome devices don't require GATT service/characteristic discovery since all data is in advertisements.
 
 **Multi-Endpoint**: Each BTHome device creates two Matter endpoints:
 - Endpoint N: Temperature Sensor (0x0302)
@@ -75,6 +98,11 @@ BTHome devices broadcast sensor data in BLE advertisements using Service Data (U
 - Temperature → `TemperatureMeasurement::MeasuredValue` (°C × 100)
 - Humidity → `RelativeHumidityMeasurement::MeasuredValue` (% × 100)
 - Battery → `PowerSource::BatPercentRemaining` (% × 2, half-percent units)
+
+**Key Implementation Details**:
+- **Scan Filtering**: Uses both `FilterMatch` (for Service UUIDs) and `FilterNoMatch` (for Service Data) callbacks
+- **Advertisement Parsing**: Lambda-based callback parses `bt_data` structures to find BTHome Service Data
+- **Device Type Detection**: Factory checks for `BtHomeAtcMiThService` UUID to determine advertisement-only mode
 
 ## Usage Example
 
@@ -202,9 +230,19 @@ You should see `scan` listed among the available subcommands. If you see "Please
 
 ## Future Enhancements
 
-This implementation provides the foundation for BTHome support. Potential enhancements include:
+This implementation provides the foundation for BTHome support. The current state successfully:
+- ✅ Detects BTHome devices via Service Data UUID parsing
+- ✅ Creates Matter endpoints without requiring GATT connection
+- ✅ Bypasses pairing for advertisement-only devices
+- ⚠️ Sensor data updates require advertisement parsing (not yet implemented)
 
-1. **Advertisement Parser**: Implement BTHome v2 service data parsing in BLE Connectivity Manager to extract sensor values from advertisements
+Potential enhancements include:
+
+1. **Advertisement Parser** (High Priority): Implement BTHome v2 service data parsing to extract sensor values from advertisements. This requires:
+   - Monitoring ongoing BLE advertisements from bridged devices
+   - Parsing BTHome packet format (Device Info byte, Object IDs, values)
+   - Calling provider notification callbacks with updated sensor data
+
 2. **Encryption Support**: Add AES-CCM decryption for encrypted BTHome advertisements
 3. **Additional Sensors**: Extend support to other BTHome object types:
    - Pressure (0x04)
@@ -213,9 +251,8 @@ This implementation provides the foundation for BTHome support. Potential enhanc
    - PM2.5 (0x0D)
    - And [many more](https://bthome.io/format/)
 4. **Packet ID Filtering**: Use BTHome packet ID (0x00) to filter duplicate advertisements
-5. **Connection-less Mode**: Optimize for passive scanning without establishing BLE connections
-6. **Device Type ID**: Parse and utilize BTHome device type ID (0xF0) for better device identification
-7. **Firmware Version**: Extract and display firmware version from BTHome data (0xF1, 0xF2)
+5. **Device Type ID**: Parse and utilize BTHome device type ID (0xF0) for better device identification
+6. **Firmware Version**: Extract and display firmware version from BTHome data (0xF1, 0xF2)
 
 ## Technical Notes
 
@@ -223,11 +260,15 @@ This implementation provides the foundation for BTHome support. Potential enhanc
 
 | Aspect | BTHome | Traditional (ESS/LBS) |
 |--------|--------|----------------------|
-| **Data Transport** | BLE Advertisements | GATT Characteristics |
+| **Data Transport** | BLE Advertisements (Service Data) | GATT Characteristics |
+| **UUID Location** | Service Data (BT_DATA_SVC_DATA16) | Service UUID List |
 | **Connection Required** | No | Yes |
+| **Pairing Required** | No | Optional (depends on security) |
 | **Power Consumption** | Very Low | Higher |
 | **Update Mechanism** | Passive broadcast | Subscribe/Notify |
-| **Discovery** | Service Data UUID | GATT Discovery |
+| **Discovery** | Advertisement parsing | GATT Discovery |
+| **Scan Detection** | FilterNoMatch callback | FilterMatch callback |
+| **Implementation Complexity** | Lower (no connection handling) | Higher (connection, discovery, subscriptions) |
 
 ### Matter Bridge Architecture
 
